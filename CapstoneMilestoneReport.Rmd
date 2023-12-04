@@ -1,0 +1,138 @@
+---
+title: "Coursera Data Science Capstone Milestone Report"
+author: "Jerin Timothy James"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Introduction
+
+This report will perform exploratory analysis to understand statistical properties of the provided data sets that can later be used to build a prediction model for a final Shiny application. Here we will identify some major features of the training data and then summarize plans for the predictive model.
+
+The model will be trained using a document corpus compiled from three sources of text data: Blogs, News, and Twitter.
+
+This project will only focus on the English corpora (though four languages are available)
+
+The motivation for this project is to: 
+1. Demonstrate that I've downloaded the data and have successfully loaded it in.
+2. Create a basic report of summary statistics about the data sets.
+3. Report any interesting findings that I've amassed so far.
+4. Get feedback on my plans for creating a prediction algorithm and Shiny app. 
+
+# Grading Criteria:
+Does the link lead to an HTML page describing the exploratory analysis of the training data set?
+
+Has the data scientist done basic summaries of the three files? Word counts, line counts and basic data tables?
+
+Has the data scientist made basic plots, such as histograms to illustrate features of the data?
+
+Was the report written in a brief, concise style, in a way that a non-data scientist manager could appreciate?
+
+## Load Data and Libraries
+
+The data sets were quite large (and my laptop memory and internet not up to repeated downloads), so I pre-downloaded (adn un-zipped) the data from the provided internet link ("https://d396qusza40orc.cloudfront.net/dsscapstone/dataset/Coursera-SwiftKey.zip") into the file path "C:/Users/tobin/Documents/GitHub/Capstone/"
+
+Below is the code for loading the required libraries
+
+```{r}
+#Load required libraries
+library(dplyr)
+library(ggplot2)
+```
+
+## Use a Function to Do Exploratory Data Analysis
+
+Below is the code for a function that will do the exploratory data analysis on the downloaded files. It will provide:
+
+1. Word counts
+2. Character counts
+3. Line counts
+4. Minimum, maximum, and mean words per line
+5. File sizes
+6. Word frequency histograms (Top 25 Words)
+7. Words per line histograms
+
+The display of each data table is hashed out due to the lack of value it provides here.
+
+```{r}
+#Function to perform EDA on a single file
+perform_eda <- function(file_path) {
+  #Read the text file
+  data <- readLines(file_path, warn = FALSE)
+  
+  #Basic summary
+  cat("Summary for file:", file_path, "\n")
+  
+  #Word count
+  words <- unlist(strsplit(data, " "))
+  cat("Word count:", length(words), "\n")
+  
+  #Character count
+  cat("Character count:", sum(nchar(data)), "\n")
+  
+  #Line count
+  cat("Line count:", length(data), "\n")
+  
+  #Minimum, maximum, and mean words per line
+  words_per_line <- sapply(strsplit(data, " "), length)
+  cat("Minimum words per line:", min(words_per_line), "\n")
+  cat("Maximum words per line:", max(words_per_line), "\n")
+  cat("Mean words per line:", mean(words_per_line), "\n")
+  
+  #File size
+  cat("File size (in bytes):", file.info(file_path)$size, "\n")
+  
+  #Create a basic data table
+  data_table <- data.frame(Word = words)
+  
+  #Display the first few rows of the data table
+  #cat("\nData Table (first few rows):\n")
+  #print(head(data_table))
+  
+  #Word frequency histogram (top 25 words)
+  word_freq <- table(words)
+  word_freq_df <- data.frame(Word = names(word_freq), Frequency = as.numeric(word_freq))
+  top_25_words <- head(word_freq_df[order(word_freq_df$Frequency, decreasing = TRUE), ], 25)
+  
+  plotx<-ggplot(top_25_words, aes(x = reorder(Word, -Frequency), y = Frequency)) +
+    geom_bar(stat = "identity", fill = "blue", alpha = 0.7) +
+    labs(title = "Top 25 Word Frequency Histogram") +
+    theme_minimal() +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1))  # Rotate x-axis labels for better readability
+  print(plotx)
+  
+  #Words per line histogram
+  plotx2<-ggplot(data.frame(WordsPerLine = words_per_line), aes(x = WordsPerLine)) +
+    geom_histogram(binwidth = 1, fill = "green", alpha = 0.7) +
+    labs(title = "Words per Line Histogram") +
+    theme_minimal()
+  print(plotx2)
+}
+
+#List of file paths
+file_paths <- c("C:/Users/tobin/Documents/GitHub/Capstone/blogs.txt", "C:/Users/tobin/Documents/GitHub/Capstone/news.txt", "C:/Users/tobin/Documents/GitHub/Capstone/twitter.txt")
+
+#Perform EDA for each file
+for (file_path in file_paths) {
+  perform_eda(file_path)
+  cat("\n\n")
+}
+```
+
+## Interessting Findings and Way Ahead
+
+The Word Histograms confirm general knowledge of the prevalence of articles, prepositions, pronouns and other less specific words vice more specific words (noun, Proper noun, verb, etc.).
+
+The histogram shows a need for making all words the same capitalization so words like "the" and "The" are only counted in one category.
+
+A general idea of how to turn this information into a word prediction algorithm will be to further clean the data:
+
+1. All un-capitalized
+2. Remove all non-English words/characters
+3. Count bi- and tri-word combos, as single words will not help predict
+4. Find a way to run the algorithm fast, maybe by sampling the data set vice using the whole thing. In real life the algorithm could run in the back ground and just provide the bi-/tri-word predictors in a compact file.  Otherwise the tie lag would make the app unusable or less accurate.
+
